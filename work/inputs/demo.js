@@ -1,0 +1,1 @@
+var a = 1 + 2; if (true) { console.log('x') } else { console.log('y') }; (foo(), bar());
