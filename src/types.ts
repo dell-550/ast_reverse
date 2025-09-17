@@ -21,6 +21,8 @@ export type DeobfuscateOptions = {
   maxPasses?: number;
   foldBinary?: boolean;
   simplifyBoolean?: boolean;
+  pipeline?: string[]; // 指定按名称执行的变换顺序（频繁调整时更方便）
+  snapshotDir?: string; // 若设置，则在每个变换后输出中间代码
 };
 
 

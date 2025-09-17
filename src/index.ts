@@ -27,11 +27,20 @@ if (require.main === module) {
   }
 
   const raw = fs.readFileSync(input, 'utf-8');
-  const options: DeobfuscateOptions = {};
+  const pipelineEnv = process.env.AST_PIPELINE; // 逗号分隔的变换名
+  const snapshotEnv = process.env.SNAPSHOT_DIR; // 指定中间产物目录
+  const getArg = (flag: string) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined; };
+  const snapshotArg = getArg('--snapshots');
+  const options: DeobfuscateOptions = {
+    pipeline: pipelineEnv ? pipelineEnv.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+    snapshotDir: snapshotArg || snapshotEnv,
+  };
   const { code } = deobfuscate(raw, options);
 
   const parsed = path.parse(input);
-  const outFile = path.join('./work/outputs', `${parsed.name}.out${parsed.ext || '.js'}`);
+  const outDir = path.join('.', 'work', 'outputs');
+  ensureDir(outDir);
+  const outFile = path.join(outDir, `${parsed.name}.out${parsed.ext || '.js'}`);
   fs.writeFileSync(outFile, code, 'utf-8');
 }
 
