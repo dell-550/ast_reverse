@@ -46,13 +46,52 @@ const stringDecoder: Transform = {
       }
     }
     
+    // 字符串查找表，用于存储解码映射
+    const stringTable = new Map<string, string>();
+    
     function visitNode(node: any) {
+      // 处理字符串字面量
       if (t.isStringLiteral(node)) {
         const decoded = decodeString(node.value);
         if (decoded !== null) {
           node.value = decoded;
           changed = true;
           context?.debug?.(`解码字符串: "${node.value}" -> "${decoded}"`);
+        }
+      }
+      
+      // 处理函数调用形式的字符串编码 _0x1d08b8(0x813)
+      if (t.isCallExpression(node)) {
+        const callee = node.callee;
+        const args = node.arguments;
+        
+        // 检查是否是字符串解码函数调用模式
+        if (t.isIdentifier(callee) && 
+            callee.name.match(/^_0x[a-fA-F0-9]+$/) && 
+            args.length === 1 && 
+            (t.isNumericLiteral(args[0]) || t.isStringLiteral(args[0]))) {
+          
+          const key = `${callee.name}(${t.isNumericLiteral(args[0]) ? args[0].value : `"${args[0].value}"`})`;
+          
+          // 如果已经有解码结果，直接替换
+          if (stringTable.has(key)) {
+            const decodedValue = stringTable.get(key)!;
+            // 将函数调用替换为字符串字面量
+            Object.assign(node, t.stringLiteral(decodedValue));
+            changed = true;
+            context?.debug?.(`解码函数调用: ${key} -> "${decodedValue}"`);
+          } else {
+            // 对于无法解码的字符串调用，添加注释标记
+            const comment = `/* 字符串编码调用: ${key} */`;
+            if (!node.leadingComments) {
+              node.leadingComments = [];
+            }
+            node.leadingComments.push({
+              type: 'CommentBlock',
+              value: ` 字符串编码调用: ${key} `
+            } as any);
+            context?.debug?.(`标记字符串编码调用: ${key}`);
+          }
         }
       }
       

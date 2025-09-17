@@ -51,14 +51,12 @@ export function applyTransforms(code: string, transforms: any[]): { code: string
 }
 
 // 解混淆入口函数 - 自动保存到outputs目录
+// 导入所有变换模块
+import { ALL_TRANSFORMS } from './transforms/index';
+
 export function deobfuscate(inputCode: string, outputFileName?: string): { code: string, appliedCount: number, outputPath: string } {
-  // 定义所有可用的变换
-  const allTransforms = [
-    binaryFoldModule,
-    ifElseSimplifyModule,
-    sequenceFlattenModule,
-    variableRenamerModule
-  ];
+  // 使用所有可用的变换模块
+  const allTransforms = ALL_TRANSFORMS;
   
   // 应用所有变换
   const result = applyTransforms(inputCode, allTransforms);
@@ -87,33 +85,23 @@ export function deobfuscate(inputCode: string, outputFileName?: string): { code:
 if (require.main === module) {
   // 获取命令行参数
   const args = process.argv.slice(2);
-  const inputFilePath = args[0];
+  var inputFilePath = args[0];
 
   if (!inputFilePath) {
-    console.log('🚀 AST解混淆框架 - 开发模式');
-    console.log('==================================================');
-    console.log('❌ 请提供混淆代码文件路径');
-    console.log('');
-    console.log('使用方法:');
-    console.log('  npm run dev <混淆代码文件路径>');
-    console.log('');
-    console.log('示例:');
-    console.log('  npm run dev ./work/inputs/demo.js');
-    console.log('  npm run dev /path/to/obfuscated.js');
-    console.log('');
-    process.exit(1);
+    // 默认文件
+    inputFilePath = './work/inputs/demo.js';
   }
 
   // 检查文件是否存在
   if (!fs.existsSync(inputFilePath)) {
-    console.log('❌ 文件不存在:', inputFilePath);
+    console.log('文件不存在:', inputFilePath);
     process.exit(1);
   }
 
   // 读取输入文件
   const inputCode = fs.readFileSync(inputFilePath, 'utf-8');
   const fileName = path.basename(inputFilePath, path.extname(inputFilePath));
-  const outputFileName = `${fileName}_deobfuscated.js`;
+  const outputFileName = `${fileName}_out.js`;
 
   console.log('🚀 AST解混淆框架 - 开发模式');
   console.log('==================================================');

@@ -5,6 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
+work/outputs/
+work/inputs/
 dist/
 build/
 *.tsbuildinfo
