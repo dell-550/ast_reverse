@@ -1,6 +1,7 @@
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { Transform } from '../../types';
+import type { Transform, TransformContext } from '../../types';
+import { parse, print } from '../../core/parser';
 
 function truthy(e: t.Expression): boolean | undefined {
   if (t.isBooleanLiteral(e)) return e.value;
@@ -11,12 +12,11 @@ function truthy(e: t.Expression): boolean | undefined {
 }
 
 const ifElseSimplify: Transform = {
-  name: 'control/ifElseSimplify',
-  description: '简化恒真/恒假的 if 语句',
-  phase: 20,
-  enabledByDefault: true,
-  run(ast) {
-    let edits = 0;
+  name: 'ifElseSimplify',
+  description: '简化if-else语句',
+  run(code: string, context?: TransformContext) {
+    let changed = false;
+    const ast = parse(code);
     traverse(ast, {
       IfStatement(path) {
         const { test, consequent, alternate } = path.node;
@@ -25,7 +25,7 @@ const ifElseSimplify: Transform = {
         if (v === true) {
           if (t.isBlockStatement(consequent)) path.replaceWithMultiple(consequent.body);
           else path.replaceWith(consequent);
-          edits++;
+          changed = true;
         } else if (v === false) {
           if (alternate) {
             if (t.isBlockStatement(alternate)) path.replaceWithMultiple(alternate.body);
@@ -33,11 +33,13 @@ const ifElseSimplify: Transform = {
           } else {
             path.remove();
           }
-          edits++;
+          changed = true;
         }
       }
     });
-    return { edits };
+    
+    const resultCode = changed ? print(ast) : code;
+    return { code: resultCode, changed };
   }
 };
 

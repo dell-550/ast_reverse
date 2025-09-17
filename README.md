@@ -1,121 +1,198 @@
-# AST解混淆工具
+# AST 解混淆框架
 
-一个基于Node.js和TypeScript的JavaScript AST解混淆工具，用于分析和还原混淆的JavaScript代码。
+一个模块化的 JavaScript 代码解混淆框架，提供独立可组合的解混淆模块，让开发者可以根据需要自定义处理流程。
 
-## 功能特性
+## 特性
 
-- 🔍 **AST解析**: 使用Babel解析器解析JavaScript代码
-- 🛠️ **多种变换**: 支持多种解混淆变换规则
-- ⚙️ **灵活配置**: 可配置的解混淆选项
-- 📝 **代码美化**: 自动格式化输出代码
-- 🧪 **扩展性**: 支持自定义变换规则
-- 📊 **详细报告**: 提供变换过程和错误信息
+- **模块化设计**：每个解混淆功能都是独立的模块
+- **灵活组合**：开发者可以自由选择和组合需要的模块
+- **简单易用**：提供简洁的 API 接口
+- **可扩展**：易于添加新的解混淆模块
 
-## 安装依赖
+## 安装
 
 ```bash
 npm install
+npm run build
 ```
 
-## 构建项目
+## 快速开始
+
+```javascript
+const {
+  parseCode,
+  generateCode,
+  stringDecoder,
+  deadCodeElimination,
+  applyTransform
+} = require('./dist/index.js');
+
+// 解析混淆代码
+const ast = parseCode('var a = "\\x48\\x65\\x6c\\x6c\\x6f";');
+
+// 应用字符串解码
+applyTransform(ast, stringDecoder);
+
+// 生成解混淆后的代码
+const result = generateCode(ast);
+console.log(result); // var a = "Hello";
+```
+
+## 可用模块
+
+### 字符串处理
+- **stringDecoder**: 解码十六进制、Unicode、八进制编码的字符串
+
+### 数组处理
+- **arrayFlattener**: 展开和简化数组操作
+
+### 表达式简化
+- **binaryFold**: 计算和简化二元表达式
+
+### 控制流优化
+- **sequenceFlatten**: 展开序列表达式
+- **ifElseSimplify**: 简化条件语句
+- **forSimplify**: 简化 for 循环
+- **whileDoSimplify**: 简化 while 循环
+- **switchSimplify**: 简化 switch 语句
+
+### 代码优化
+- **deadCodeElimination**: 移除死代码和未使用的变量
+- **variableRenamer**: 将混淆的变量名还原为有意义的名称
+
+## 使用方式
+
+### 1. 单独应用变换
+
+```javascript
+const { parseCode, generateCode, stringDecoder, applyTransform } = require('./dist/index.js');
+
+const ast = parseCode(obfuscatedCode);
+const result = applyTransform(ast, stringDecoder);
+
+if (result.changed) {
+  console.log('字符串解码完成');
+  console.log(generateCode(ast));
+}
+```
+
+### 2. 批量应用变换
+
+```javascript
+const { parseCode, generateCode, applyTransforms } = require('./dist/index.js');
+const { stringDecoder, deadCodeElimination, variableRenamer } = require('./dist/index.js');
+
+const ast = parseCode(obfuscatedCode);
+const transforms = [stringDecoder, deadCodeElimination, variableRenamer];
+
+const result = applyTransforms(ast, transforms);
+console.log(`应用了 ${result.appliedCount} 个变换`);
+console.log(generateCode(ast));
+```
+
+### 3. 自定义处理流程
+
+```javascript
+const { parseCode, generateCode } = require('./dist/index.js');
+const { stringDecoder, binaryFold, deadCodeElimination } = require('./dist/index.js');
+
+function customDeobfuscate(code) {
+  const ast = parseCode(code);
+  const context = { debug: console.log };
+  
+  // 第一阶段：基础解码
+  stringDecoder.run(ast, context);
+  
+  // 第二阶段：表达式优化
+  binaryFold.run(ast, context);
+  
+  // 第三阶段：清理优化
+  deadCodeElimination.run(ast, context);
+  
+  return generateCode(ast);
+}
+
+const result = customDeobfuscate(obfuscatedCode);
+console.log(result);
+```
+
+## API 参考
+
+### 核心函数
+
+- `parseCode(code: string)`: 将 JavaScript 代码解析为 AST
+- `generateCode(ast: Node)`: 将 AST 生成为 JavaScript 代码
+- `applyTransform(ast: Node, transform: Transform, context?: TransformContext)`: 应用单个变换
+- `applyTransforms(ast: Node, transforms: Transform[], context?: TransformContext)`: 批量应用变换
+
+### Transform 接口
+
+每个变换模块都实现了 `Transform` 接口：
+
+```typescript
+interface Transform {
+  name: string;
+  description: string;
+  run(ast: Node, context: TransformContext): TransformResult;
+}
+
+interface TransformResult {
+  changed: boolean;
+}
+
+interface TransformContext {
+  debug?: (message: string) => void;
+  options?: Record<string, any>;
+}
+```
+
+## 示例
+
+查看 `example.js` 文件了解完整的使用示例：
+
+```bash
+node example.js
+```
+
+## 扩展框架
+
+要添加新的解混淆模块：
+
+1. 在 `src/transforms/` 下创建新的模块文件
+2. 实现 `Transform` 接口
+3. 在 `src/transforms/index.ts` 中导出模块
+4. 在 `src/index.ts` 中添加导出
+
+```typescript
+// src/transforms/custom/myTransform.ts
+import * as t from '@babel/types';
+import { Transform, TransformContext, TransformResult } from '../../types';
+
+const myTransform: Transform = {
+  name: 'myTransform',
+  description: '我的自定义变换',
+  
+  run(ast, context: TransformContext): TransformResult {
+    let changed = false;
+    
+    // 实现变换逻辑
+    
+    return { changed };
+  }
+};
+
+export default myTransform;
+```
+
+## 构建
 
 ```bash
 npm run build
 ```
 
-## 使用方法
-
-### 命令行使用
-
-```bash
-# 处理单个文件
-node dist/index.js input.js output.js
-
-# 处理目录
-node dist/index.js --dir ./src ./dist
-
-# 使用选项
-node dist/index.js input.js output.js --beautify --remove-comments
-```
-
-### 编程接口
-
-```typescript
-import { ASTDeobfuscator } from './core/ASTDeobfuscator';
-
-const deobfuscator = new ASTDeobfuscator({
-  beautify: true,
-  simplifyExpressions: true,
-  removeUnusedVariables: true,
-});
-
-const result = deobfuscator.deobfuscate(obfuscatedCode);
-console.log(result.code);
-```
-
-## 配置选项
-
-| 选项 | 描述 | 默认值 |
-|------|------|--------|
-| `removeComments` | 移除注释 | `true` |
-| `beautify` | 美化代码 | `true` |
-| `removeUnusedVariables` | 移除未使用的变量 | `true` |
-| `simplifyExpressions` | 简化表达式 | `true` |
-| `restoreVariableNames` | 还原变量名 | `false` |
-
-## 支持的变换
-
-- **表达式简化**: 简化数学运算和逻辑表达式
-- **变量清理**: 移除未使用的变量声明
-- **代码美化**: 格式化输出代码
-- **注释处理**: 移除或保留注释
-- **变量名还原**: 还原混淆的变量名（实验性）
-
-## 项目结构
-
-```
-src/
-├── core/           # 核心解混淆逻辑
-├── types/          # TypeScript类型定义
-├── utils/          # 工具函数
-├── examples/       # 使用示例
-└── index.ts        # 主入口文件
-```
-
-## 开发
-
-### 运行开发环境
-
-```bash
-npm run dev
-```
-
-### 代码检查
-
-```bash
-npm run lint
-npm run lint:fix
-```
-
-### 代码格式化
-
-```bash
-npm run format
-```
-
-### 运行测试
-
-```bash
-npm test
-```
-
-## 示例
-
-查看 `src/examples/basic.ts` 文件了解详细的使用示例。
-
 ## 许可证
 
-MIT License
+MIT
 
 ## 贡献
 

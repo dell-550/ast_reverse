@@ -1,25 +1,27 @@
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { Transform } from '../../types';
+import type { Transform, TransformContext } from '../../types';
+import { parse, print } from '../../core/parser';
 
 const sequenceFlatten: Transform = {
-  name: 'others/sequenceFlatten',
-  description: '表达式语句中的逗号表达式展开为多条语句',
-  phase: 5,
-  enabledByDefault: true,
-  run(ast) {
-    let edits = 0;
+  name: 'sequenceFlatten',
+  description: '展开序列表达式',
+  run(code: string, context?: TransformContext) {
+    let changed = false;
+    const ast = parse(code);
     traverse(ast, {
       ExpressionStatement(path) {
         const expr = path.node.expression;
         if (t.isSequenceExpression(expr)) {
           const stmts = expr.expressions.map((e) => t.expressionStatement(e));
           path.replaceWithMultiple(stmts);
-          edits++;
+          changed = true;
         }
       },
     });
-    return { edits };
+    
+    const resultCode = changed ? print(ast) : code;
+    return { code: resultCode, changed };
   },
 };
 

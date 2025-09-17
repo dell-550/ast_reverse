@@ -1,6 +1,7 @@
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { Transform } from '../../types';
+import type { Transform, TransformContext } from '../../types';
+import { parse, print } from '../../core/parser';
 
 function isFalse(expr: t.Expression | null | undefined): boolean {
   if (!expr) return false;
@@ -11,12 +12,12 @@ function isFalse(expr: t.Expression | null | undefined): boolean {
 }
 
 const forSimplify: Transform = {
-  name: 'loops/forSimplify',
-  description: '移除恒假 for 或空体 for',
-  phase: 30,
-  enabledByDefault: true,
-  run(ast) {
-    let edits = 0;
+  name: 'forSimplify',
+  description: '简化 for 循环',
+
+  run(code: string, context?: TransformContext) {
+    let changed = false;
+    const ast = parse(code);
     traverse(ast, {
       ForStatement(path) {
         const { test, body } = path.node;
@@ -24,17 +25,19 @@ const forSimplify: Transform = {
           const repl: t.Statement[] = [];
           if (path.node.init) repl.push(t.isVariableDeclaration(path.node.init) ? path.node.init : t.expressionStatement(path.node.init));
           path.replaceWithMultiple(repl);
-          edits++;
+          changed = true;
           return;
         }
         if (test && isFalse(test)) {
           if (path.node.init) path.replaceWith(t.isVariableDeclaration(path.node.init) ? path.node.init : t.expressionStatement(path.node.init));
           else path.remove();
-          edits++;
+          changed = true;
         }
       }
     });
-    return { edits };
+    
+    const resultCode = changed ? print(ast) : code;
+    return { code: resultCode, changed };
   }
 };
 

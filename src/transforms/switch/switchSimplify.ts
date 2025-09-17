@@ -1,6 +1,7 @@
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { Transform } from '../../types';
+import type { Transform, TransformContext } from '../../types';
+import { parse, print } from '../../core/parser';
 
 function constValue(n: t.Expression): any | undefined {
   if (t.isStringLiteral(n) || t.isNumericLiteral(n) || t.isBooleanLiteral(n)) return n.value;
@@ -9,12 +10,12 @@ function constValue(n: t.Expression): any | undefined {
 }
 
 const switchSimplify: Transform = {
-  name: 'switch/switchSimplify',
-  description: '当 discriminant 为字面量时折叠到匹配分支',
-  phase: 40,
-  enabledByDefault: true,
-  run(ast) {
-    let edits = 0;
+  name: 'switchSimplify',
+  description: '简化switch语句',
+
+  run(code: string, context?: TransformContext) {
+    let changed = false;
+    const ast = parse(code);
     traverse(ast, {
       SwitchStatement(path) {
         const disc = path.node.discriminant;
@@ -37,11 +38,13 @@ const switchSimplify: Transform = {
           }
           if (body.length === 0) path.remove();
           else path.replaceWithMultiple(body);
-          edits++;
+          changed = true;
         }
       }
     });
-    return { edits };
+    
+    const resultCode = changed ? print(ast) : code;
+    return { code: resultCode, changed };
   }
 };
 

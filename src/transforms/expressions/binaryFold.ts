@@ -1,16 +1,17 @@
 import traverse from '@babel/traverse';
 import * as t from '@babel/types';
-import type { Transform } from '../../types';
+import type { Transform, TransformContext } from '../../types';
+import { parse, print } from '../../core/parser';
 
 const allowed = new Set(['+','-','*','/','%','<<','>>','>>>','|','&','^','===','!==','==','!=','<','<=','>','>=']);
 
 const binaryFold: Transform = {
-  name: 'expressions/binaryFold',
-  description: '常量二元表达式折叠',
-  phase: 10,
-  enabledByDefault: true,
-  run(ast) {
-    let edits = 0;
+  name: 'binaryFold',
+  description: '计算二元表达式',
+  run(code: string, context?: TransformContext) {
+    let changed = false;
+    const ast = parse(code);
+    
     traverse(ast, {
       BinaryExpression(path) {
         const { left, right, operator } = path.node;
@@ -23,12 +24,14 @@ const binaryFold: Transform = {
               : typeof v === 'number' ? t.numericLiteral(v)
               : typeof v === 'boolean' ? t.booleanLiteral(v)
               : v === null ? t.nullLiteral() : null;
-            if (lit) { path.replaceWith(lit); edits++; }
+            if (lit) { path.replaceWith(lit); changed = true; }
           } catch {}
         }
       }
     });
-    return { edits };
+    
+    const resultCode = changed ? print(ast) : code;
+    return { code: resultCode, changed };
   }
 };
 
