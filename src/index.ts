@@ -1,141 +1,44 @@
 #!/usr/bin/env node
 
-// AST解混淆模块库
-// 提供独立的解混淆模块，开发者可以自定义调用
-
 import * as fs from 'fs';
 import * as path from 'path';
+import { deobfuscate } from './core/deobfuscator';
 
+// 导出核心功能
 export { parse as parseCode, print as generateCode } from './core/parser';
-
-// 导入解混淆模块用于内部使用
-import binaryFoldModule from './transforms/expressions/binaryFold';
-import ifElseSimplifyModule from './transforms/control/ifElseSimplify';
-import sequenceFlattenModule from './transforms/others/sequenceFlatten';
-import variableRenamerModule from './transforms/variables/variableRenamer';
-
-// 导出解混淆模块
-export { default as stringDecoder } from './transforms/strings/stringDecoder';
-export { default as arrayFlattener } from './transforms/arrays/arrayFlattener';
-export { default as sequenceFlatten } from './transforms/others/sequenceFlatten';
-export { default as binaryFold } from './transforms/expressions/binaryFold';
-export { default as ifElseSimplify } from './transforms/control/ifElseSimplify';
-export { default as forSimplify } from './transforms/loops/forSimplify';
-export { default as whileDoSimplify } from './transforms/loops/whileDoSimplify';
-export { default as switchSimplify } from './transforms/switch/switchSimplify';
-export { default as deadCodeElimination } from './transforms/optimization/deadCodeElimination';
-export { default as variableRenamer } from './transforms/variables/variableRenamer';
-
-// 导出类型定义
+export {
+  Deobfuscator,
+  createDeobfuscator,
+  deobfuscate,
+  TransformRegistry,
+} from './core/deobfuscator';
 export * from './types';
 
-// 简单的工具函数
-export function applyTransform(code: string, transform: any): { code: string, changed: boolean } {
-  const context = { options: {} };
-  return transform.run(code, context);
-}
-
-export function applyTransforms(code: string, transforms: any[]): { code: string, appliedCount: number } {
-  let currentCode = code;
-  let appliedCount = 0;
-  
-  for (const transform of transforms) {
-    const result = applyTransform(currentCode, transform);
-    if (result.changed) {
-      currentCode = result.code;
-      appliedCount++;
-    }
-  }
-  
-  return { code: currentCode, appliedCount };
-}
-
-// 解混淆入口函数 - 自动保存到outputs目录
-// 导入所有变换模块
-import { ALL_TRANSFORMS } from './transforms/index';
-
-export function deobfuscate(inputCode: string, outputFileName?: string): { code: string, appliedCount: number, outputPath: string } {
-  // 使用所有可用的变换模块
-  const allTransforms = ALL_TRANSFORMS;
-  
-  // 应用所有变换
-  const result = applyTransforms(inputCode, allTransforms);
-  
-  // 确保输出目录存在
-  const outputDir = './work/outputs';
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-  
-  // 如果没有提供输出文件名，使用默认名称
-  const finalOutputFileName = outputFileName || 'deobfuscated.js';
-  
-  // 保存结果
-  const outputPath = path.join(outputDir, finalOutputFileName);
-  fs.writeFileSync(outputPath, result.code, 'utf-8');
-  
-  return {
-    code: result.code,
-    appliedCount: result.appliedCount,
-    outputPath: outputPath
-  };
-}
-
-// 命令行入口 - 仅在直接运行时执行
+// 命令行入口
 if (require.main === module) {
-  // 获取命令行参数
   const args = process.argv.slice(2);
-  var inputFilePath = args[0];
+  const inputFilePath = './src/work/inputs/demo.js';
 
-  if (!inputFilePath) {
-    // 默认文件
-    inputFilePath = './work/inputs/demo.js';
-  }
-
-  // 检查文件是否存在
   if (!fs.existsSync(inputFilePath)) {
-    console.log('文件不存在:', inputFilePath);
+    console.error('文件不存在:', inputFilePath);
     process.exit(1);
   }
 
-  // 读取输入文件
   const inputCode = fs.readFileSync(inputFilePath, 'utf-8');
   const fileName = path.basename(inputFilePath, path.extname(inputFilePath));
-  const outputFileName = `${fileName}_out.js`;
+  const outputFilePath = inputFilePath.replace('inputs', 'outputs');
 
-  console.log('🚀 AST解混淆框架 - 开发模式');
-  console.log('==================================================');
-  console.log('📁 输入文件:', inputFilePath);
-  console.log('📝 原始代码:');
-  console.log(inputCode);
-  console.log('');
-  console.log('--------------------------------------------------');
-  console.log('');
-  console.log('🔧 开始解混淆...');
+  console.log('开始解混淆...');
+  console.log('输入:', inputFilePath);
 
   try {
-    const result = deobfuscate(inputCode, outputFileName);
-    
-    console.log('✅ 解混淆完成!');
-    console.log('✓ 应用了', result.appliedCount, '个变换');
-    console.log('✓ 结果已保存到:', result.outputPath);
-    console.log('');
-    console.log('📝 解混淆结果:');
-    console.log(result.code);
-    console.log('');
-    console.log('==================================================');
-    console.log('');
-    console.log('📚 使用说明:');
-    console.log('1. 将混淆代码放入任意位置');
-    console.log('2. 使用 npm run dev <文件路径> 进行解混淆');
-    console.log('3. 结果会自动保存到 ./work/outputs/ 目录');
-    console.log('');
-    console.log('🔄 处理其他文件: npm run dev <新文件路径>');
-    
+    const result = deobfuscate(inputCode, ['ternaryToIfElse'], outputFilePath);
+
+    console.log('完成');
+    console.log('应用变换:', result.appliedCount, '个');
+    console.log('输出:', result.outputPath);
   } catch (error: any) {
-    console.log('❌ 解混淆失败:', error.message);
+    console.error('失败:', error.message);
     process.exit(1);
   }
 }
-
-

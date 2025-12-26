@@ -1,1 +1,0 @@
-var a = 1 + 2; if (true) { console.log('Hello World') } else { console.log('Never executed') }; (foo(), bar(), baz());
