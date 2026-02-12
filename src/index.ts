@@ -32,7 +32,7 @@ if (require.main === module) {
   console.log('输入:', inputFilePath);
 
   try {
-    const result = deobfuscate(inputCode, ['ternaryToIfElse'], outputFilePath);
+    const result = deobfuscate(inputCode, ['hexStringDecoder'], outputFilePath);
 
     console.log('完成');
     console.log('应用变换:', result.appliedCount, '个');

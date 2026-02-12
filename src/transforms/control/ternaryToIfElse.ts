@@ -1,7 +1,6 @@
 import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import { Transform, TransformContext, TransformResult } from '../../types';
-import { parse, print } from '../../core/parser';
 
 /**
  * 三目表达式转if-else模块
@@ -11,9 +10,8 @@ const ternaryToIfElse: Transform = {
   name: 'ternaryToIfElse',
   description: '将三目表达式转换为if-else语句',
 
-  run(code: string, context?: TransformContext): TransformResult {
+  run(ast: t.File, context?: TransformContext): TransformResult {
     let changed = false;
-    const ast = parse(code);
 
     traverse(ast, {
       VariableDeclarator(path) {
@@ -76,10 +74,8 @@ const ternaryToIfElse: Transform = {
       },
     });
 
-    const resultCode = changed ? print(ast) : code;
-    return { code: resultCode, changed };
+    return { changed };
   },
 };
 
 export default ternaryToIfElse;
-

@@ -2,6 +2,7 @@ import { Transform } from '../types';
 
 // 导入所有transform模块
 import ternaryToIfElse from '../transforms/control/ternaryToIfElse';
+import hexStringDecoder from '../transforms/strings/hexStringDecoder';
 
 // import stringDecoder from '../transforms/strings/stringDecoder';
 // import arrayFlattener from '../transforms/arrays/arrayFlattener';
@@ -38,7 +39,7 @@ export class TransformRegistry {
     this.register('ternaryToIfElse', ternaryToIfElse);
 
     // 字符串处理
-    // this.register('stringDecoder', stringDecoder);
+    this.register('hexStringDecoder', hexStringDecoder);
 
     // 数组处理
     // this.register('arrayFlattener', arrayFlattener);
@@ -118,7 +119,7 @@ export class TransformRegistry {
    * 获取默认的transform模块列表（核心模块）
    */
   static getDefault(): Transform[] {
-    return [ternaryToIfElse];
+    return [hexStringDecoder, ternaryToIfElse];
   }
 }
 

@@ -1,7 +1,8 @@
 import * as fs from 'fs';
-import * as path from 'path';
+import type { File } from '@babel/types';
 import { Transform, TransformContext, TransformResult } from '../types';
 import { TransformRegistry } from './transformRegistry';
+import { parse, print } from './parser';
 
 /**
  * 统一的解混淆器
@@ -62,21 +63,19 @@ export class Deobfuscator {
    * 执行解混淆
    */
   run(
-    code: string,
+    ast: File,
     context?: TransformContext
-  ): { code: string; appliedCount: number } {
-    let currentCode = code;
+  ): { appliedCount: number } {
     let appliedCount = 0;
 
     for (const transform of this.transforms) {
-      const result: TransformResult = transform.run(currentCode, context);
+      const result: TransformResult = transform.run(ast, context);
       if (result.changed) {
-        currentCode = result.code;
         appliedCount++;
       }
     }
 
-    return { code: currentCode, appliedCount };
+    return { appliedCount };
   }
 }
 
@@ -116,7 +115,9 @@ export function deobfuscate(
   outputFilePath?: string
 ): { code: string; appliedCount: number; outputPath: string } {
   const deobfuscator = createDeobfuscator(transformNames);
-  const result = deobfuscator.run(inputCode);
+  const ast = parse(inputCode);
+  const result = deobfuscator.run(ast);
+  const code = print(ast);
 
   // // 确保输出目录存在
   // const outputDir = './work/outputs';
@@ -127,10 +128,10 @@ export function deobfuscate(
   const finalOutputFilePath =
     outputFilePath || './src/work/outputs/deobfuscated.js';
   const outputPath = finalOutputFilePath;
-  fs.writeFileSync(outputPath, result.code, 'utf-8');
+  fs.writeFileSync(outputPath, code, 'utf-8');
 
   return {
-    code: result.code,
+    code,
     appliedCount: result.appliedCount,
     outputPath: outputPath,
   };
