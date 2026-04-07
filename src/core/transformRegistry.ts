@@ -3,6 +3,10 @@ import { Transform } from '../types';
 // 导入所有transform模块
 import ternaryToIfElse from '../transforms/control/ternaryToIfElse';
 import hexStringDecoder from '../transforms/strings/hexStringDecoder';
+import stringArrayResolver from '../transforms/strings/stringArrayResolver';
+import wrapperFunctionInliner from '../transforms/expressions/wrapperFunctionInliner';
+import jsFuckDecoder from '../transforms/expressions/jsFuckDecoder';
+import propertyAccessSimplifier from '../transforms/expressions/propertyAccessSimplifier';
 
 // import stringDecoder from '../transforms/strings/stringDecoder';
 // import arrayFlattener from '../transforms/arrays/arrayFlattener';
@@ -40,6 +44,12 @@ export class TransformRegistry {
 
     // 字符串处理
     this.register('hexStringDecoder', hexStringDecoder);
+    this.register('stringArrayResolver', stringArrayResolver);
+
+    // 表达式处理
+    this.register('jsFuckDecoder', jsFuckDecoder);
+    this.register('wrapperFunctionInliner', wrapperFunctionInliner);
+    this.register('propertyAccessSimplifier', propertyAccessSimplifier);
 
     // 数组处理
     // this.register('arrayFlattener', arrayFlattener);
@@ -119,7 +129,13 @@ export class TransformRegistry {
    * 获取默认的transform模块列表（核心模块）
    */
   static getDefault(): Transform[] {
-    return [hexStringDecoder, ternaryToIfElse];
+    return [
+      hexStringDecoder,          // step 1: \x41\x42 → "AB"
+      jsFuckDecoder,             // step 2: +!+[] → 1, [+!+[]]+[+[]] → "10"
+      wrapperFunctionInliner,    // step 3: XS(a,b) → a/b
+      stringArrayResolver,       // step 4: dB[n] → plaintext (XOR decode via vm)
+      propertyAccessSimplifier,  // step 5: obj["prop"] → obj.prop
+    ];
   }
 }
 

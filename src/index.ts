@@ -32,7 +32,17 @@ if (require.main === module) {
   console.log('输入:', inputFilePath);
 
   try {
-    const result = deobfuscate(inputCode, ['hexStringDecoder'], outputFilePath);
+    const result = deobfuscate(
+      inputCode,
+      [
+        'hexStringDecoder',         // step 1: 解码 \x41\x42 十六进制字面量
+        'jsFuckDecoder',            // step 2: 折叠 +!+[]、[+!+[]]+[+[]] 等常量
+        'wrapperFunctionInliner',   // step 3: 内联 XS(a,b)→a/b 等运算符包装
+        'stringArrayResolver',      // step 4: vm 沙箱 XOR 解码 dB 字符串数组
+        'propertyAccessSimplifier', // step 5: obj["prop"] → obj.prop
+      ],
+      outputFilePath,
+    );
 
     console.log('完成');
     console.log('应用变换:', result.appliedCount, '个');

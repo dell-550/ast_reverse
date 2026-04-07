@@ -14,6 +14,21 @@ const ternaryToIfElse: Transform = {
     let changed = false;
 
     traverse(ast, {
+      // 处理独立表达式语句中的三目：cond ? doA() : doB();
+      ExpressionStatement(path) {
+        const expr = path.node.expression;
+        if (!t.isConditionalExpression(expr)) return;
+
+        const ifStmt = t.ifStatement(
+          expr.test,
+          t.blockStatement([t.expressionStatement(expr.consequent)]),
+          t.blockStatement([t.expressionStatement(expr.alternate)]),
+        );
+        path.replaceWith(ifStmt);
+        changed = true;
+        context?.debug?.('转换三目表达式: 独立表达式语句 -> if-else');
+      },
+
       VariableDeclarator(path) {
         const init = path.node.init;
 
